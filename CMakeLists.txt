@@ -1,0 +1,14 @@
+cmake_minimum_required(VERSION 3.15)
+
+project(SaveStuff LANGUAGES C)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+add_executable(savestuff
+        src/main.c
+)
+
+target_include_directories(savestuff PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
