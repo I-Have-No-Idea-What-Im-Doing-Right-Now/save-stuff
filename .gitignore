@@ -14,4 +14,3 @@ CMakeUserPresets.json
 *.iws
 *.iml
 cmake-build-*
-./include/generated
