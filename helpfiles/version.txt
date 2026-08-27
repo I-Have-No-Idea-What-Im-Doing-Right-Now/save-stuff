@@ -1,0 +1,4 @@
+savestuff version - Display the version of the savestuff tool
+
+USAGE:
+  savestuff version

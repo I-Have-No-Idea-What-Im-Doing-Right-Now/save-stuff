@@ -1,0 +1,15 @@
+savestuff - A simple tool for making backups in one command
+
+USAGE:
+  savestuff [command] [options]
+
+COMMANDS:
+    help            Displays this help message
+    version         Prints the current version number
+
+OPTIONS:
+    -h, --help      Display this help message
+    -v, --version   Prints the current version number
+    -l, --location  Specifies the location for the backup to be stored (Default: ../Backups)
+    -o, --out       Specify the name of your backup directory (Uses current date and time as default)
+    -i, --ignore    Specify a file to ignore during backups
