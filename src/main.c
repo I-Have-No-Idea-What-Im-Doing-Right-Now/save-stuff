@@ -158,6 +158,14 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             CopyDirContentsRecursive(srcSubdirPath, subDir);
             free(subDir);
         }
+        if (srcEntry->d_type == DT_REG) {
+            size_t filePathLen = strlen(dest) + 1 + strlen(srcEntry->d_name) + 1; // Add one for / and one for null terminator
+            char *filePath = malloc(filePathLen);
+            snprintf(filePath, filePathLen, "%s/%s", dest, srcEntry->d_name);
+            FILE *file = fopen(filePath, "w");
+            fclose(file);
+            free(filePath);
+        }
     }
 }
 
