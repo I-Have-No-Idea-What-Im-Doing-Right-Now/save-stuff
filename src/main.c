@@ -159,12 +159,32 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             free(subDir);
         }
         if (srcEntry->d_type == DT_REG) {
-            size_t filePathLen = strlen(dest) + 1 + strlen(srcEntry->d_name) + 1; // Add one for / and one for null terminator
-            char *filePath = malloc(filePathLen);
-            snprintf(filePath, filePathLen, "%s/%s", dest, srcEntry->d_name);
-            FILE *file = fopen(filePath, "w");
-            fclose(file);
-            free(filePath);
+            size_t destFilePathLen = strlen(dest) + 1 + strlen(srcEntry->d_name) + 1; // Add one for / and one for null terminator
+            char *destFilePath = malloc(destFilePathLen);
+            snprintf(destFilePath, destFilePathLen, "%s/%s", dest, srcEntry->d_name);
+            FILE *destFile = fopen(destFilePath, "wb");
+            if (destFile == NULL) {
+                fprintf(stderr, "Failed to create file\n");
+                exit(1);
+            }
+            size_t srcFilePathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1;
+            char *srcFilePath = malloc(srcFilePathLen);
+            snprintf(srcFilePath, srcFilePathLen, "%s/%s", src, srcEntry->d_name);
+            FILE *srcFile = fopen(srcFilePath, "rb  ");
+            if (srcFile == NULL) {
+                fprintf(stderr, "Failed to read src file");
+                exit(1);
+            }
+            char buffer[4096];
+            size_t bytesRead;
+            while ((bytesRead = fread(buffer, 1, sizeof(buffer), srcFile)) > 0) {
+                fwrite(buffer, 1, bytesRead, destFile);
+            }
+
+            fclose(destFile);
+            fclose(srcFile);
+            free(srcFilePath);
+            free(destFilePath);
         }
     }
 }
