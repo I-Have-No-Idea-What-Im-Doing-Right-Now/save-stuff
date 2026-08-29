@@ -8,6 +8,7 @@
 #include <string.h>
 #include <time.h>
 #include <limits.h>
+#include <wchar.h>
 
 // --- CROSS-PLATFORM SETUP FOR MAKE DIR ---
 #if defined(_WIN32) || defined(_WIN64)
@@ -79,8 +80,13 @@ static char *GetBackupDirName() {
     time(&rawTime); // Set raw time using time function
     struct tm *timeInfo = localtime(&rawTime);
 
-    char *dirName = malloc(50);
-    strftime(dirName, 49, BACKUP_NAME, timeInfo); // Only write as much as the buffer can hold (49 bytes)
+    char *dirName = malloc(SAFE_DIR_MAX);
+    const int bytesWritten = strftime(dirName, SAFE_DIR_MAX - 1, BACKUP_NAME, timeInfo); // Only write as much as the buffer can hold (49 bytes)
+    if (bytesWritten == 0) {
+        fprintf(stderr, "Backup directory name too long\n");
+        free(dirName);
+        return NULL;
+    }
     return dirName;
 }
 
@@ -103,8 +109,9 @@ static char *MakeBackupDir() {
 
     char *path = (char *)malloc(pathLen);
     if (path == NULL) {
-        fprintf(stderr, "Failed to allocate memory for backup path");
-        exit(1);
+        fprintf(stderr, "Failed to allocate memory for backup path\n");
+        free(backupDirName);
+        return NULL;
     }
     snprintf(path, pathLen, "%s/%s", TARGET_DIR, backupDirName);
     free(backupDirName);
@@ -113,27 +120,81 @@ static char *MakeBackupDir() {
     return path;
 }
 
-static void BackUpDir() {
-    DIR *srcDir = opendir(".");
-    char *backupDirPath = MakeBackupDir();
-    struct dirent *entry;
+static char *MakeSubDir(char *parent, char *name) {
+    // Check if parent dir exists
+    DIR *parentDir;
+    if ((parentDir = opendir(parent)) == NULL) {
+        fprintf(stderr, "Failed to open parent dir\n");
+        return NULL;
+    }
+    closedir(parentDir);
+
+    size_t subDirPathLen = strlen(parent) + 1 + strlen(name) + 1; // Add 1 for '/' and one for null terminator
+    char *subDirPath = malloc(subDirPathLen);
+    snprintf(subDirPath, subDirPathLen, "%s/%s", parent, name);
+    make_dir(subDirPath);
+    return subDirPath;
+}
+
+static void CopyDirContentsRecursive(char *src, char *dest) {
+    struct dirent *srcEntry;
+    DIR *srcDir = opendir(src);
     if (srcDir == NULL) {
-        fprintf(stderr, "Failed to open directory");
+        fprintf(stderr, "Failed to open source directory\n");
         exit(1);
     }
+
+    while ((srcEntry = readdir(srcDir)) != NULL) {
+        if (strcmp(srcEntry->d_name, ".") == 0 || strcmp(srcEntry->d_name, "..") == 0) continue; // Skip over
+        if (srcEntry->d_type == DT_DIR) {
+            char *subDir = MakeSubDir(dest, srcEntry->d_name);
+            const size_t srcSubdirPathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1; // Add one for / and one for null terminator
+            char *srcSubdirPath = malloc(srcSubdirPathLen);
+            snprintf(srcSubdirPath, srcSubdirPathLen, "%s/%s", src, srcEntry->d_name);
+            if (subDir == NULL) {
+                fprintf(stderr, "Failed to create subdirectory in destination directory\n");
+                return;
+            }
+            CopyDirContentsRecursive(srcSubdirPath, subDir);
+            free(subDir);
+        }
+    }
+}
+
+static void MakeBackup() {
+    char *backupDirPath = MakeBackupDir();
+
+    if (backupDirPath == NULL) {
+        exit(1);
+    }
+    CopyDirContentsRecursive(".", backupDirPath);
+
     free(backupDirPath);
 }
 
-int main(int argc, char *argv[]) {
+static char *GetPrevArg(char *argv[], const int i) {
+    return argv[i-1 >=0 ? i-1 : 0]; // Get previous argument and make sure it is in bounds
+}
+
+static char *GetNextArg(const int argc, char *argv[], const int i) {
+    return i + 1 <= argc - 1 ? argv[i+1] : NULL;
+}
+
+static void SetBackupName(const char *name) {
+    memset(BACKUP_NAME, 0, sizeof(BACKUP_NAME)); // Clear the string
+    strncpy(BACKUP_NAME, name, sizeof(BACKUP_NAME) - 1); // Write the name into the string
+}
+
+int main(const int argc, char *argv[]) {
     if (argc == 1) {
-        BackUpDir();
+        MakeBackup();
         return 0;
     }
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "help") == 0 ||
             strcmp(argv[i], "--help") == 0 ||
             strcmp(argv[i], "-h") == 0) {
-            const char* prevArg = argv[i-1 >=0 ? i-1 : 0]; // Get previous argument and make sure it is in bounds
+            const char* prevArg = GetPrevArg(argv, i);
             PrintHelp(GetHelpMessageNum(prevArg, strlen(prevArg)));
             return 0;
         }
@@ -145,15 +206,14 @@ int main(int argc, char *argv[]) {
         }
         if (strcmp(argv[i], "-o") == 0 ||
                  strcmp(argv[i], "--out") == 0) {
-            const char* nextArg = i + 1 <= argc - 1 ? argv[i+1] : NULL;
+            const char* nextArg = GetNextArg(argc, argv, i);
             if (nextArg == NULL) {
                 fprintf(stderr, "No value passed for -o / --out option\n");
                 exit(1);
             }
-            memset(BACKUP_NAME, 0, sizeof(BACKUP_NAME)); // Clear the string
-            strncpy(BACKUP_NAME, nextArg, sizeof(BACKUP_NAME) - 1); // Write the name into the string
+            SetBackupName(nextArg);
         }
     }
-    BackUpDir();
+    MakeBackup();
     return 0;
 }
