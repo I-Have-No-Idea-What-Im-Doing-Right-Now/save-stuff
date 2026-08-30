@@ -10,6 +10,8 @@
 #include <wchar.h>
 #include <time.h>
 #include <errno.h>
+#include <stdbool.h>
+
 #include "commands.h"
 
 // --- CROSS-PLATFORM SETUP FOR MAKE DIR ---
@@ -45,6 +47,17 @@ static char const SAVESTUFF_VERSION[64] = "1.0.0";
 
 static char TARGET_DIR[SAFE_PATH_MAX] = "../Backups";
 static char BACKUP_NAME[SAFE_DIR_MAX] = "Backup_%Y-%m-%d_%H-%M-%S";
+static char **IGNORES = NULL;
+static size_t IGNORES_LEN = 0;
+
+static bool IgnoresContains(const char *text) {
+    for (size_t i = 0; i < IGNORES_LEN; i++) {
+        if (IGNORES[i] != NULL && strcmp(IGNORES[i], text) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
 
 static void PrintVersion() {
     printf("%.64s\n", SAVESTUFF_VERSION);
@@ -167,7 +180,8 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
     }
 
     while ((srcEntry = readdir(srcDir)) != NULL) {
-        if (strcmp(srcEntry->d_name, ".") == 0 || strcmp(srcEntry->d_name, "..") == 0) continue; // Skip over
+        if (strcmp(srcEntry->d_name, ".") == 0 || strcmp(srcEntry->d_name, "..") == 0) continue; // Skip over . and .. directories to avoid infinite recursion
+        if (IgnoresContains(srcEntry->d_name)) continue;
         if (srcEntry->d_type == DT_DIR) {
             char *subDir = MakeSubDir(dest, srcEntry->d_name);
             const size_t srcSubdirPathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1; // Add one for / and one for null terminator
@@ -219,7 +233,7 @@ static void MakeBackup() {
         fprintf(stderr, "Failed to create backup directory");
         exit(1);
     }
-    CopyDirContentsRecursive(TARGET_DIR, backupDirPath);
+    CopyDirContentsRecursive(".", backupDirPath);
 
     free(backupDirPath);
 }
@@ -240,6 +254,21 @@ static void SetBackupName(const char *name) {
 static void SetBackupLocation(const char *location) {
     memset(TARGET_DIR, 0, sizeof(TARGET_DIR));
     strncpy(TARGET_DIR, location, sizeof(TARGET_DIR));
+}
+
+static void AppendIgnores(const char *text) {
+    IGNORES_LEN++;
+    char **temp = realloc(IGNORES, IGNORES_LEN * sizeof(char *));
+    if (temp == NULL) {
+        fprintf(stderr, "Failed to allocate memory for new ignore entry");
+        exit(0);
+    }
+    IGNORES = temp;
+
+    IGNORES[IGNORES_LEN - 1] = (char *)malloc(NAME_MAX);
+    if (IGNORES[IGNORES_LEN - 1] != NULL) {
+        strncpy(IGNORES[IGNORES_LEN - 1], text, NAME_MAX);
+    }
 }
 
 static enum Commands ParseArgs(const int argc, char *argv[]) {
@@ -300,6 +329,21 @@ static enum Commands ParseArgs(const int argc, char *argv[]) {
                 break;
             }
             SetBackupLocation(nextArg);
+        }
+        if (strcmp(argv[i], "-i") == 0 ||
+        strcmp(argv[i], "--ignore") == 0) {
+            const char* nextArg = GetNextArg(argc, argv, i);
+            if (nextArg == NULL) {
+                fprintf(stderr, "No value passed for -o / --out option\n");
+                exit(1);
+            }
+            if ((i + 1) < argc) { // Skip next argument if possible so it is not interpreted as a command
+                i++;
+            }
+            else {
+                break;
+            }
+            AppendIgnores(nextArg);
         }
     }
     return out;
