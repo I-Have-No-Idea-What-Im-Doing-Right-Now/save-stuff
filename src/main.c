@@ -6,9 +6,10 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <limits.h>
 #include <wchar.h>
+#include <time.h>
+#include "commands.h"
 
 // --- CROSS-PLATFORM SETUP FOR MAKE DIR ---
 #if defined(_WIN32) || defined(_WIN64)
@@ -48,31 +49,44 @@ static void PrintVersion() {
     printf("%.64s\n", SAVESTUFF_VERSION);
 }
 
-static void PrintHelp(int messageNum) {
+static void PrintHelp(enum Commands command) {
     #include <generated/generalhelp.h>
-    switch (messageNum) {
-        case 0:
+    #include <generated/versionhelp.h>
+    #include <generated/backuphelp.h>
+    switch (command) {
+        case COMMANDS_HELP_GENERAL:
             fwrite(general_txt, sizeof(char), general_txt_len, stdout);
             break;
-        case 1:
+        case COMMANDS_HELP_VERSION:
+            fwrite(version_txt, sizeof(char), version_txt_len, stdout);
+            break;
+        case COMMANDS_HELP_BACKUP:
+            fwrite(backup_txt, sizeof(char), backup_txt_len, stdout);
+            break;
+        case COMMANDS_HELP_RESTORE:
             break;
         default:
-            fwrite(general_txt, sizeof(char), general_txt_len, stdout);
-            break;
+            return;
     }
     putchar('\n');
 }
 
-static int GetHelpMessageNum(const char* string, const size_t len) {
+static enum Commands GetHelpMessageCommand(const char* string, const size_t len) {
     if (string[len] != 0) {
         fprintf(stderr, "GetHelpMessageNum: must input null-terminated string");
         exit(1);
     }
 
     if (strcmp(string, "version") == 0) {
-        return 1;
+        return COMMANDS_HELP_VERSION;
     }
-    return 0;
+    if (strcmp(string, "backup") == 0) {
+        return COMMANDS_HELP_BACKUP;
+    }
+    if (strcmp(string, "restore") == 0) {
+        return COMMANDS_HELP_RESTORE;
+    }
+    return COMMANDS_HELP_GENERAL;
 }
 
 static char *GetBackupDirName() {
@@ -81,7 +95,7 @@ static char *GetBackupDirName() {
     struct tm *timeInfo = localtime(&rawTime);
 
     char *dirName = malloc(SAFE_DIR_MAX);
-    const int bytesWritten = strftime(dirName, SAFE_DIR_MAX - 1, BACKUP_NAME, timeInfo); // Only write as much as the buffer can hold (49 bytes)
+    const size_t bytesWritten = strftime(dirName, SAFE_DIR_MAX - 1, BACKUP_NAME, timeInfo); // Only write as much as the buffer can hold (49 bytes)
     if (bytesWritten == 0) {
         fprintf(stderr, "Backup directory name too long\n");
         free(dirName);
@@ -170,11 +184,12 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             size_t srcFilePathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1;
             char *srcFilePath = malloc(srcFilePathLen);
             snprintf(srcFilePath, srcFilePathLen, "%s/%s", src, srcEntry->d_name);
-            FILE *srcFile = fopen(srcFilePath, "rb  ");
+            FILE *srcFile = fopen(srcFilePath, "rb");
             if (srcFile == NULL) {
                 fprintf(stderr, "Failed to read src file");
                 exit(1);
             }
+
             char buffer[4096];
             size_t bytesRead;
             while ((bytesRead = fread(buffer, 1, sizeof(buffer), srcFile)) > 0) {
@@ -193,6 +208,7 @@ static void MakeBackup() {
     char *backupDirPath = MakeBackupDir();
 
     if (backupDirPath == NULL) {
+        fprintf(stderr, "Failed to create backup directory");
         exit(1);
     }
     CopyDirContentsRecursive(".", backupDirPath);
@@ -213,35 +229,89 @@ static void SetBackupName(const char *name) {
     strncpy(BACKUP_NAME, name, sizeof(BACKUP_NAME) - 1); // Write the name into the string
 }
 
-int main(const int argc, char *argv[]) {
+static void SetBackupLocation(const char *location) {
+    memset(TARGET_DIR, 0, sizeof(TARGET_DIR));
+    strncpy(TARGET_DIR, location, sizeof(TARGET_DIR));
+}
+
+static enum Commands ParseArgs(const int argc, char *argv[]) {
+    enum Commands out = COMMANDS_NONE;
     if (argc == 1) {
-        MakeBackup();
-        return 0;
+        return out;
     }
+
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "help") == 0 ||
-            strcmp(argv[i], "--help") == 0 ||
-            strcmp(argv[i], "-h") == 0) {
+        strcmp(argv[i], "--help") == 0 ||
+        strcmp(argv[i], "-h") == 0) {
             const char* prevArg = GetPrevArg(argv, i);
-            PrintHelp(GetHelpMessageNum(prevArg, strlen(prevArg)));
-            return 0;
+            return GetHelpMessageCommand(prevArg, strlen(prevArg));
         }
+
         if (strcmp(argv[i], "version") == 0 ||
-            strcmp(argv[i], "-v") == 0 ||
-            strcmp(argv[i], "--version") == 0) {
-            PrintVersion();
-            return 0;
+        strcmp(argv[i], "-v") == 0 ||
+        strcmp(argv[i], "--version") == 0) {
+            out = COMMANDS_VERSION;
         }
+
+        if (strcmp(argv[i], "backup") == 0) {
+            out = COMMANDS_BACKUP;
+        }
+
+        if (strcmp(argv[i], "restore") == 0) {
+            out = COMMANDS_RESTORE;
+        }
+
         if (strcmp(argv[i], "-o") == 0 ||
-                 strcmp(argv[i], "--out") == 0) {
+        strcmp(argv[i], "--out") == 0) {
             const char* nextArg = GetNextArg(argc, argv, i);
             if (nextArg == NULL) {
                 fprintf(stderr, "No value passed for -o / --out option\n");
                 exit(1);
             }
+            if ((i + 1) < argc) { // Skip next argument if possible so it is not interpreted as a command
+                i++;
+            }
+            else {
+                break;
+            }
             SetBackupName(nextArg);
         }
+
+        if (strcmp(argv[i], "-l") == 0 ||
+        strcmp(argv[i], "--location") == 0) {
+            const char* nextArg = GetNextArg(argc, argv, i);
+            if (nextArg == NULL) {
+                fprintf(stderr, "No value passed for -o / --out option\n");
+                exit(1);
+            }
+            if ((i + 1) < argc) { // Skip next argument if possible so it is not interpreted as a command
+                i++;
+            }
+            else {
+                break;
+            }
+            SetBackupLocation(nextArg);
+        }
     }
-    MakeBackup();
+    return out;
+}
+
+int main(const int argc, char *argv[]) {
+    enum Commands command = ParseArgs(argc, argv);
+    PrintHelp(command);
+    switch (command) {
+        case COMMANDS_BACKUP:
+            MakeBackup();
+            printf("Successfully made backup\n");
+            break;
+        case COMMANDS_VERSION:
+            PrintVersion();
+            break;
+        case COMMANDS_RESTORE:
+            break;
+        default:
+            break;
+    }
     return 0;
 }
