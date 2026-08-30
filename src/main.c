@@ -9,6 +9,7 @@
 #include <limits.h>
 #include <wchar.h>
 #include <time.h>
+#include <errno.h>
 #include "commands.h"
 
 // --- CROSS-PLATFORM SETUP FOR MAKE DIR ---
@@ -107,11 +108,11 @@ static char *GetBackupDirName() {
 static char *MakeBackupDir() {
     DIR *destDir = opendir(TARGET_DIR);
     // Make destination directory if doesn't already exist
-    if (destDir == NULL) {
+    if (errno == ENOENT) {
         make_dir(TARGET_DIR);
         destDir = opendir(TARGET_DIR);
         if (destDir == NULL) {
-            fprintf(stderr, "Failed to open destination directory");
+            fprintf(stderr, "Failed to create destination directory");
             exit(1);
         }
     }
@@ -130,8 +131,15 @@ static char *MakeBackupDir() {
     snprintf(path, pathLen, "%s/%s", TARGET_DIR, backupDirName);
     free(backupDirName);
 
-    make_dir(path);
-    return path;
+    DIR *backupDir = opendir(path);
+    if (errno == ENOENT) {
+        make_dir(path);
+        return path;
+    }
+    fprintf(stderr, "A backup named %s may already exist", path);
+    free(path);
+    closedir(backupDir);
+    exit(0);
 }
 
 static char *MakeSubDir(char *parent, char *name) {
@@ -211,7 +219,7 @@ static void MakeBackup() {
         fprintf(stderr, "Failed to create backup directory");
         exit(1);
     }
-    CopyDirContentsRecursive(".", backupDirPath);
+    CopyDirContentsRecursive(TARGET_DIR, backupDirPath);
 
     free(backupDirPath);
 }
@@ -303,7 +311,7 @@ int main(const int argc, char *argv[]) {
     switch (command) {
         case COMMANDS_BACKUP:
             MakeBackup();
-            printf("Successfully made backup\n");
+            printf("Successfully created backup\n");
             break;
         case COMMANDS_VERSION:
             PrintVersion();
