@@ -13,6 +13,8 @@ set(VERSION_HELP_FILE "${CMAKE_CURRENT_SOURCE_DIR}/helpfiles/version.txt")
 set(VERSION_HELP_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/generated/versionhelp.h")
 set(BACKUP_HELP_FILE "${CMAKE_CURRENT_SOURCE_DIR}/helpfiles/backup.txt")
 set(BACKUP_HELP_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/generated/backuphelp.h")
+set(RESTORE_HELP_FILE "${CMAKE_CURRENT_SOURCE_DIR}/helpfiles/restore.txt")
+set(RESTORE_HELP_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/generated/restorehelp.h")
 
 add_custom_command(
         OUTPUT "${GENERAL_HELP_HEADER}"
@@ -38,12 +40,32 @@ add_custom_command(
         COMMENT "Generating ${BACKUP_HELP_HEADER} using xxd..."
 )
 
+add_custom_command(
+        OUTPUT "${RESTORE_HELP_HEADER}"
+        COMMAND ${XXD_EXECUTABLE} -i "restore.txt" "${RESTORE_HELP_HEADER}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/helpfiles"
+        DEPENDS "${RESTORE_HELP_FILE}"
+        COMMENT "Generating ${RESTORE_HELP_HEADER} using xxd..."
+)
+
 add_executable(savestuff
         src/main.c
         "${GENERAL_HELP_HEADER}"
         "${VERSION_HELP_HEADER}"
         "${BACKUP_HELP_HEADER}"
+        "${RESTORE_HELP_HEADER}"
         src/commands.h
+        src/ParseArgs.c
+        src/ParseArgs.h
+        src/savestuff.c
+        src/crossplatlimits.h
+        src/savestuff.h
+        src/backups.c
+        src/backups.h
+        src/crossplatmkdir.h
+        src/cleanup.h
+        src/helpmessages.c
+        src/helpmessages.h
 )
 
 if(WIN32)

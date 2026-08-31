@@ -1,9 +1,11 @@
-savestuff backup - Back up the current directory
+savestuff restore - Restore a previous backup and optionally create a backup before restoring
 
 USAGE:
-    savestuff backup [options]
+    savestuff restore [options]
 
 OPTIONS:
+    -b, --backup    Specifies the backup to restore
+    -n, --noback    Turns off automatic backup before restoring
     -l, --location  Specifies the location for the backup to be stored (Default: ../Backups)
     -o, --out       Specify the name of your backup directory (Uses current date and time as default)
     -i, --ignore    Specify a file name to ignore during backups. Use multiple times to ignore multiple files
