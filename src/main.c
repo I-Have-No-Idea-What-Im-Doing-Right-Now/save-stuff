@@ -121,7 +121,7 @@ static char *GetBackupDirName() {
 static char *MakeBackupDir() {
     DIR *destDir = opendir(TARGET_DIR);
     // Make destination directory if doesn't already exist
-    if (errno == ENOENT) {
+    if (destDir == NULL && errno == ENOENT) {
         make_dir(TARGET_DIR);
         destDir = opendir(TARGET_DIR);
         if (destDir == NULL) {
@@ -144,14 +144,19 @@ static char *MakeBackupDir() {
     snprintf(path, pathLen, "%s/%s", TARGET_DIR, backupDirName);
     free(backupDirName);
 
+    errno = 0;
     DIR *backupDir = opendir(path);
-    if (errno == ENOENT) {
+    if (backupDir == NULL && errno == ENOENT) {
         make_dir(path);
         return path;
     }
-    fprintf(stderr, "A backup named %s may already exist", path);
+    if (backupDir != NULL) {
+        fprintf(stderr, "A backup named %s may already exist\n", path);
+        closedir(backupDir);
+    } else {
+        fprintf(stderr, "Failed to open or check backup directory %s\n", path);
+    }
     free(path);
-    closedir(backupDir);
     exit(0);
 }
 
@@ -189,10 +194,12 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             snprintf(srcSubdirPath, srcSubdirPathLen, "%s/%s", src, srcEntry->d_name);
             if (subDir == NULL) {
                 fprintf(stderr, "Failed to create subdirectory in destination directory\n");
+                closedir(srcDir);
                 return;
             }
             CopyDirContentsRecursive(srcSubdirPath, subDir);
             free(subDir);
+            free(srcSubdirPath);
         }
         if (srcEntry->d_type == DT_REG) {
             size_t destFilePathLen = strlen(dest) + 1 + strlen(srcEntry->d_name) + 1; // Add one for / and one for null terminator
@@ -201,6 +208,7 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             FILE *destFile = fopen(destFilePath, "wb");
             if (destFile == NULL) {
                 fprintf(stderr, "Failed to create file\n");
+                closedir(srcDir);
                 exit(1);
             }
             size_t srcFilePathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1;
@@ -209,6 +217,7 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             FILE *srcFile = fopen(srcFilePath, "rb");
             if (srcFile == NULL) {
                 fprintf(stderr, "Failed to read src file");
+                closedir(srcDir);
                 exit(1);
             }
 
@@ -224,6 +233,7 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             free(destFilePath);
         }
     }
+    closedir(srcDir);
 }
 
 static void MakeBackup() {
@@ -365,5 +375,6 @@ int main(const int argc, char *argv[]) {
         default:
             break;
     }
+    free(IGNORES);
     return 0;
 }

@@ -6,4 +6,4 @@ USAGE:
 OPTIONS:
     -l, --location  Specifies the location for the backup to be stored (Default: ../Backups)
     -o, --out       Specify the name of your backup directory (Uses current date and time as default)
-    -i, --ignore    Specify a file to ignore during backups
+    -i, --ignore    Specify a file to ignore during backups. Use multiple times to ignore multiple files
