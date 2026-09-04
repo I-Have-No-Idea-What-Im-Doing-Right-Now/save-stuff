@@ -1,6 +1,9 @@
 //
 // Created by Leo Pilcher on 8/31/26.
 //
+#pragma once
+
+#include <limits.h>
 
 #ifndef SAVESTUFF_CROSSPLATLIMITS_H
 #define SAVESTUFF_CROSSPLATLIMITS_H

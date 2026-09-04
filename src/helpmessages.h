@@ -6,6 +6,6 @@
 #define SAVESTUFF_HELPMESSAGES_H
 
 extern void PrintVersion();
-extern void PrintHelp();
+extern void PrintHelp(enum Commands command);
 
 #endif //SAVESTUFF_HELPMESSAGES_H
