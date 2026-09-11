@@ -7,5 +7,6 @@
 
 extern void PrintVersion();
 extern void PrintHelp(enum Commands command);
+extern void PrintWarn(char *message, size_t len);
 
 #endif //SAVESTUFF_HELPMESSAGES_H
