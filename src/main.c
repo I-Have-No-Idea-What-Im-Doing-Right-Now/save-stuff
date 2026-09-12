@@ -25,6 +25,7 @@ int main(const int argc, char *argv[]) {
             MakeBackup();
             RestoreBackup();
         case COMMANDS_RESTORE_NO_BACKUP:
+            PrintWarn("warn", 5);
             RestoreBackup();
         default:
             break;

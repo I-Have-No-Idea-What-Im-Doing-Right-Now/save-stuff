@@ -5,6 +5,6 @@
 #ifndef SAVESTUFF_CLEANUP_H
 #define SAVESTUFF_CLEANUP_H
 
-extern void Cleanup();
+void Cleanup();
 
 #endif //SAVESTUFF_CLEANUP_H

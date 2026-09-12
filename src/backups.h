@@ -5,7 +5,7 @@
 #ifndef SAVESTUFF_BACKUPS_H
 #define SAVESTUFF_BACKUPS_H
 
-extern void MakeBackup();
-extern void RestoreBackup();
+void MakeBackup();
+void RestoreBackup();
 
 #endif //SAVESTUFF_BACKUPS_H

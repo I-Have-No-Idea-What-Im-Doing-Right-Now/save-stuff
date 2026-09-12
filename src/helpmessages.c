@@ -6,6 +6,8 @@
 
 #include "helpmessages.h"
 
+#include <stdlib.h>
+
 #define SAVESTUFF_VERSION "1.0.0"
 
 void PrintVersion() {
@@ -37,7 +39,12 @@ void PrintHelp(enum Commands command) {
     putchar('\n');
 }
 
-void PrintWarn(char *message, size_t len) {
+void PrintWarn(char *message, const size_t len) {
     const char *yellow = "\033[93m";
     const char *reset = "\033[0m";
+    const size_t strSize = len + 15; // Add 7 for each ANSI escape and 1 for null terminator
+    char *finalMessage = malloc(strSize);
+    snprintf(finalMessage, strSize, "%s%s%s", yellow, message, reset);
+    printf("%s", finalMessage);
+    free(finalMessage);
 }
