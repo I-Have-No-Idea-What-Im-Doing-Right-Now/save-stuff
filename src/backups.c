@@ -173,17 +173,18 @@ void MakeBackup() {
 
 static void ClearDirContentsRecursive(char *path) {
     struct dirent *dirEntry;
-    DIR *currentDir = opendir(".");
+    DIR *currentDir = opendir(path);
 
     if (currentDir == NULL) {
         fprintf(stderr, "Failed to clear directory\n");
+        printf("%i, %s\n", errno, path);
         exit(1);
     }
 
     while ((dirEntry = readdir(currentDir)) != NULL) {
         // Skip over . and .. directories to avoid infinite recursion
         if (strcmp(dirEntry->d_name, ".") == 0 || strcmp(dirEntry->d_name, "..") == 0) continue;
-        const size_t pathToEntrySize = strlen(path) + strlen(dirEntry->d_name) + 1;
+        const size_t pathToEntrySize = strlen(path) + 1 + strlen(dirEntry->d_name) + 1;
         char *pathToEntry = malloc(pathToEntrySize);
         snprintf(pathToEntry, pathToEntrySize, "%s/%s", path, dirEntry->d_name);
         const int err = remove(dirEntry->d_name);
@@ -197,14 +198,17 @@ static void ClearDirContentsRecursive(char *path) {
             case EROFS:  // Read only file system
                 fprintf(stderr, "Not allowed to delete item %s\n", pathToEntry);
                 free(pathToEntry);
+                closedir(currentDir);
                 exit(1);
             default:
-                fprintf(stderr, "Error %i while deleting files", errno);
+                fprintf(stderr, "Error %i while deleting file or directory %s\n", errno, pathToEntry);
                 free(pathToEntry);
+                closedir(currentDir);
                 exit(1);
         }
         free(pathToEntry);
     }
+    closedir(currentDir);
 }
 
 void RestoreBackup() {
