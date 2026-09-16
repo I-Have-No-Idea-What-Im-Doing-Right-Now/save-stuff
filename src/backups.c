@@ -9,6 +9,7 @@
 #include <time.h>
 #include <errno.h>
 #include "crossplatmkdir.h"
+#include "crossplatremove.h"
 #include "savestuff.h"
 
 #include "backups.h"
@@ -187,7 +188,7 @@ static void ClearDirContentsRecursive(char *path) {
         const size_t pathToEntrySize = strlen(path) + 1 + strlen(dirEntry->d_name) + 1;
         char *pathToEntry = malloc(pathToEntrySize);
         snprintf(pathToEntry, pathToEntrySize, "%s/%s", path, dirEntry->d_name);
-        const int err = remove(dirEntry->d_name);
+        const int err = cross_plat_remove(path);
         if (err == 0) continue; // Continue to next entry if deletion was successful
         switch (errno) {
             case ENOTEMPTY:  // Directory not empty

@@ -66,6 +66,7 @@ add_executable(savestuff
         src/cleanup.h
         src/helpmessages.c
         src/helpmessages.h
+        src/crossplatremove.h
 )
 
 if(WIN32)
