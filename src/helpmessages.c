@@ -30,7 +30,6 @@ void PrintHelp(enum Commands command) {
             fwrite(backup_txt, sizeof(char), backup_txt_len, stdout);
             break;
         case COMMANDS_HELP_RESTORE:
-        case COMMANDS_RESTORE_NO_BACKUP:
             fwrite(restore_txt, sizeof(char), restore_txt_len, stdout);
             break;
         default:

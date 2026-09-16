@@ -25,7 +25,7 @@ int main(const int argc, char *argv[]) {
             MakeBackup();
             RestoreBackup();
         case COMMANDS_RESTORE_NO_BACKUP:
-            PrintWarn("warn", 5);
+            PrintWarn("WARNING: Restoring without a backup is not recommended!\n", 56);
             RestoreBackup();
         default:
             break;
