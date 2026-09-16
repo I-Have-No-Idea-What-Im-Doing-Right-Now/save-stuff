@@ -28,7 +28,8 @@ static char *GetBackupDirName() {
     const struct tm *timeInfo = localtime(&rawTime);
 
     char *dirName = malloc(SAFE_DIR_MAX);
-    const size_t bytesWritten = strftime(dirName, SAFE_DIR_MAX - 1, BACKUP_NAME, timeInfo); // Only write as much as the buffer can hold (49 bytes)
+    const size_t bytesWritten = strftime(dirName, SAFE_DIR_MAX - 1, BACKUP_NAME, timeInfo);
+    // Only write as much as the buffer can hold (49 bytes)
     if (bytesWritten == 0) {
         fprintf(stderr, "Backup directory name too long\n");
         free(dirName);
@@ -54,7 +55,7 @@ static char *MakeBackupDir() {
 
     size_t pathLen = strlen(TARGET_DIR) + 1 + strlen(backupDirName) + 1; // +1 for / and +1 for null-terminator
 
-    char *path = (char *)malloc(pathLen);
+    char *path = (char *) malloc(pathLen);
     if (path == NULL) {
         fprintf(stderr, "Failed to allocate memory for backup path\n");
         free(backupDirName);
@@ -104,11 +105,13 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
     }
 
     while ((srcEntry = readdir(srcDir)) != NULL) {
-        if (strcmp(srcEntry->d_name, ".") == 0 || strcmp(srcEntry->d_name, "..") == 0) continue; // Skip over . and .. directories to avoid infinite recursion
+        if (strcmp(srcEntry->d_name, ".") == 0 || strcmp(srcEntry->d_name, "..") == 0) continue;
+        // Skip over . and .. directories to avoid infinite recursion
         if (IgnoresContains(srcEntry->d_name)) continue;
         if (srcEntry->d_type == DT_DIR) {
             char *subDir = MakeSubDir(dest, srcEntry->d_name);
-            const size_t srcSubdirPathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1; // Add one for / and one for null terminator
+            const size_t srcSubdirPathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1;
+            // Add one for / and one for null terminator
             char *srcSubdirPath = malloc(srcSubdirPathLen);
             snprintf(srcSubdirPath, srcSubdirPathLen, "%s/%s", src, srcEntry->d_name);
             if (subDir == NULL) {
@@ -121,7 +124,8 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             free(srcSubdirPath);
         }
         if (srcEntry->d_type == DT_REG) {
-            size_t destFilePathLen = strlen(dest) + 1 + strlen(srcEntry->d_name) + 1; // Add one for / and one for null terminator
+            size_t destFilePathLen = strlen(dest) + 1 + strlen(srcEntry->d_name) + 1;
+            // Add one for / and one for null terminator
             char *destFilePath = malloc(destFilePathLen);
             snprintf(destFilePath, destFilePathLen, "%s/%s", dest, srcEntry->d_name);
             FILE *destFile = fopen(destFilePath, "wb");
@@ -167,6 +171,42 @@ void MakeBackup() {
     free(backupDirPath);
 }
 
-void RestoreBackup() {
+static void ClearDirContentsRecursive(char *path) {
+    struct dirent *dirEntry;
+    DIR *currentDir = opendir(".");
 
+    if (currentDir == NULL) {
+        fprintf(stderr, "Failed to clear directory\n");
+        exit(1);
+    }
+
+    while ((dirEntry = readdir(currentDir)) != NULL) {
+        // Skip over . and .. directories to avoid infinite recursion
+        if (strcmp(dirEntry->d_name, ".") == 0 || strcmp(dirEntry->d_name, "..") == 0) continue;
+        const size_t pathToEntrySize = strlen(path) + strlen(dirEntry->d_name) + 1;
+        char *pathToEntry = malloc(pathToEntrySize);
+        snprintf(pathToEntry, pathToEntrySize, "%s/%s", path, dirEntry->d_name);
+        const int err = remove(dirEntry->d_name);
+        if (err == 0) continue; // Continue to next entry if deletion was successful
+        switch (errno) {
+            case ENOTEMPTY:  // Directory not empty
+                ClearDirContentsRecursive(pathToEntry);
+                break;
+            case EACCES: // Permission denied
+            case EPERM:  // Operation not permitted
+            case EROFS:  // Read only file system
+                fprintf(stderr, "Not allowed to delete item %s\n", pathToEntry);
+                free(pathToEntry);
+                exit(1);
+            default:
+                fprintf(stderr, "Error %i while deleting files", errno);
+                free(pathToEntry);
+                exit(1);
+        }
+        free(pathToEntry);
+    }
+}
+
+void RestoreBackup() {
+    ClearDirContentsRecursive(".");
 }
