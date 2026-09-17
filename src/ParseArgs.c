@@ -135,7 +135,7 @@ enum Commands ParseArgs(const int argc, char *argv[]) {
             AppendIgnores(nextArg);
         }
         if (strcmp(argv[i], "-b") == 0 ||
-       strcmp(argv[i], "--backup") == 0) {
+        strcmp(argv[i], "--backup") == 0) {
             const char* nextArg = GetNextArg(argc, argv, i);
             if (nextArg == NULL) {
                 fprintf(stderr, "No value passed for -b / --backup option\n");
