@@ -1,0 +1,10 @@
+#!/bin/bash
+cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
+cp ./cmake-build-release ./macos-installer/payload/usr/local/bin
+cd macos-installer
+read -p "Version: " version
+pkgbuild --root ./payload \
+         --identifier "com.leopilcher.savestuff" \
+         --version "$version" \
+         --install-location / \
+         ./savestuff-installer.pkg

@@ -6,10 +6,8 @@ The build process uses CMake, so CMake must be installed to build the project
 ### On macOS
 Build using CMake. The build process requires `xxd` for embedding files
 ```
-mkdir build
-cd build
-cmake build ..
-make
+cmake -B cmake-build-release
+cmake --build cmake-build-release
 ```
 If you need to build for Windows on macOS, `mingw-w64` is required which can be installed using homebrew (`brew install mingw-w64`)
 
