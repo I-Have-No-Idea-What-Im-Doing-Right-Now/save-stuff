@@ -214,4 +214,5 @@ static void ClearDirContentsRecursive(char *path) {
 
 void RestoreBackup() {
     ClearDirContentsRecursive(".");
+    CopyDirContentsRecursive(BACKUP_TO_RESTORE, ".");
 }
