@@ -1,7 +1,10 @@
 #!/bin/bash
 cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
-cp ./cmake-build-release ./macos-installer/payload/usr/local/bin
-cd macos-installer
+if [[ ! -f "../cmake-build-release/savestuff" ]]; then
+    echo "ERROR: Failed to find savestuff executeable. Exiting." >&2
+    exit 1
+fi
+cp ../cmake-build-release/savestuff ./macos-installer/payload/usr/local/bin
 read -p "Version: " version
 pkgbuild --root ./payload \
          --identifier "com.leopilcher.savestuff" \

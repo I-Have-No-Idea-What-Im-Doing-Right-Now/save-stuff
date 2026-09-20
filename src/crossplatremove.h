@@ -1,9 +1,10 @@
 //
 // Created by Leo Pilcher on 9/16/26.
 //
-#pragma once
 
 #ifndef SAVESTUFF_CROSSPLATREMOVE_H
+#define SAVESTUFF_CROSSPLATREMOVE_H
+
 #include <stdio.h>
 #include <errno.h>
 
@@ -42,6 +43,5 @@ static int cross_plat_remove(const char *path) {
 #endif
 }
 
-#define SAVESTUFF_CROSSPLATREMOVE_H
 
 #endif //SAVESTUFF_CROSSPLATREMOVE_H

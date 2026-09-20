@@ -1,0 +1,9 @@
+#!/bin/bash
+cd "$(dirname "$0")" || exit 1
+if [[ ! -f "./savestuff.exe" ]]; then
+    echo "ERROR: Failed to find savestuff.exe executable. Exiting." >&2
+    exit 1
+fi
+rm -rf ./Output
+npx innosetup ./script.iss
+exit 0

@@ -2,13 +2,10 @@
 // Created by Leo Pilcher on 8/31/26.
 //
 #include <stdio.h>
+#include "version.h"
 #include "commands.h"
-
 #include "helpmessages.h"
-
 #include <stdlib.h>
-
-#define SAVESTUFF_VERSION "1.0.0"
 
 void PrintVersion() {
     printf("%.64s\n", SAVESTUFF_VERSION);

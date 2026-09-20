@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "commands.h"
-#include <limits.h>
+#include "crossplatlimits.h"
 #include <string.h>
 #include "savestuff.h"
 #include "ParseArgs.h"
@@ -46,9 +46,9 @@ static void AppendIgnores(const char *text) {
     }
     IGNORES = temp;
 
-    IGNORES[IGNORES_LEN - 1] = (char *)malloc(NAME_MAX);
+    IGNORES[IGNORES_LEN - 1] = (char *)malloc(SAFE_DIR_MAX);
     if (IGNORES[IGNORES_LEN - 1] != NULL) {
-        strncpy(IGNORES[IGNORES_LEN - 1], text, NAME_MAX);
+        strncpy(IGNORES[IGNORES_LEN - 1], text, SAFE_DIR_MAX);
     }
 }
 
