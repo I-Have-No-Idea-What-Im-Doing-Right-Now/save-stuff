@@ -5,6 +5,8 @@ project(SaveStuff LANGUAGES C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+add_compile_options(-Werror -Wall)
+
 find_program(XXD_EXECUTABLE xxd REQUIRED)
 
 set(GENERAL_HELP_FILE "${CMAKE_CURRENT_SOURCE_DIR}/helpfiles/general.txt")

@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
 if [[ ! -f "../cmake-build-release/savestuff" ]]; then
-    echo "ERROR: Failed to find savestuff executeable. Exiting." >&2
+    echo "ERROR: Failed to find savestuff executable. Exiting." >&2
     exit 1
 fi
 cp ../cmake-build-release/savestuff ./macos-installer/payload/usr/local/bin
