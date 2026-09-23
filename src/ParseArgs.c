@@ -151,7 +151,7 @@ enum Commands ParseArgs(const int argc, char *argv[]) {
        }
         if (strcmp(argv[i], "-n") == 0 ||
         strcmp(argv[i], "--noback") == 0) {
-            if (out == COMMANDS_RESTORE || COMMANDS_RESTORE_NO_BACKUP) {
+            if (out == COMMANDS_RESTORE || out == COMMANDS_RESTORE_NO_BACKUP) {
                 out = COMMANDS_RESTORE_NO_BACKUP;
             }
         }
