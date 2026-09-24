@@ -189,7 +189,8 @@ static void ClearDirContentsRecursive(char *path) {
         char *pathToEntry = malloc(pathToEntrySize);
         snprintf(pathToEntry, pathToEntrySize, "%s/%s", path, dirEntry->d_name);
         const int err = cross_plat_remove(pathToEntry);
-        if (err == 0) continue; // Continue to next entry if deletion was successful
+        // Continue to next entry if deletion was successful
+        if (err == 0) { free(pathToEntry); continue; }
         switch (errno) {
             case ENOTEMPTY:  // Directory not empty
                 ClearDirContentsRecursive(pathToEntry);
