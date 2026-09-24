@@ -1,7 +1,0 @@
-#!/bin/bash
-cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
-cd windows-installer
-./MakeWindowsInstaller
-cd ../macos-installer
-./MakeMacosInstaller
-exit 0
