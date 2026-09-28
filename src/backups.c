@@ -123,7 +123,7 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             free(subDir);
             free(srcSubdirPath);
         }
-        if (srcEntry->d_type == DT_REG) {
+        else {
             size_t destFilePathLen = strlen(dest) + 1 + strlen(srcEntry->d_name) + 1;
             // Add one for / and one for null terminator
             char *destFilePath = malloc(destFilePathLen);
@@ -132,6 +132,7 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             if (destFile == NULL) {
                 fprintf(stderr, "Failed to create file\n");
                 closedir(srcDir);
+                free(destFilePath);
                 exit(1);
             }
             size_t srcFilePathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1;
@@ -141,6 +142,9 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             if (srcFile == NULL) {
                 fprintf(stderr, "Failed to read src file");
                 closedir(srcDir);
+                free(destFilePath);
+                fclose(destFile);
+                free(srcFilePath);
                 exit(1);
             }
 
