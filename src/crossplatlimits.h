@@ -16,6 +16,7 @@
     #define SAFE_PATH_MAX 4097
 #endif
 
+// TODO: REFACTOR SAFE_DIR_MAX MACRO TO SOMETHING THAT MAKES SENSE
 #ifdef NAME_MAX
     #define SAFE_DIR_MAX (NAME_MAX + 1)
 #elif defined(_MAX_FNAME)

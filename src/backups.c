@@ -96,6 +96,43 @@ static char *MakeSubDir(char *parent, char *name) {
     return subDirPath;
 }
 
+static int CopyFile(const char *const src, const char *const dest, const char *const filename) {
+    // Returns 0 for success, 1 for failure
+    size_t destFilePathLen = strlen(dest) + 1 + strlen(filename) + 1;
+    // Add one for / and one for null terminator
+    char *destFilePath = malloc(destFilePathLen);
+    snprintf(destFilePath, destFilePathLen, "%s/%s", dest, filename);
+    FILE *destFile = fopen(destFilePath, "wb");
+    if (destFile == NULL) {
+        fprintf(stderr, "Failed to create file\n");
+        free(destFilePath);
+        return 1;
+    }
+    size_t srcFilePathLen = strlen(src) + 1 + strlen(filename) + 1;
+    char *srcFilePath = malloc(srcFilePathLen);
+    snprintf(srcFilePath, srcFilePathLen, "%s/%s", src, filename);
+    FILE *srcFile = fopen(srcFilePath, "rb");
+    if (srcFile == NULL) {
+        fprintf(stderr, "Failed to read src file");
+        free(destFilePath);
+        fclose(destFile);
+        free(srcFilePath);
+        return 1;
+    }
+
+    char buffer[4096];
+    size_t bytesRead;
+    while ((bytesRead = fread(buffer, 1, sizeof(buffer), srcFile)) > 0) {
+        fwrite(buffer, 1, bytesRead, destFile);
+    }
+
+    fclose(destFile);
+    fclose(srcFile);
+    free(srcFilePath);
+    free(destFilePath);
+    return 0;
+}
+
 static void CopyDirContentsRecursive(char *src, char *dest) {
     struct dirent *srcEntry;
     DIR *srcDir = opendir(src);
@@ -122,42 +159,21 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             CopyDirContentsRecursive(srcSubdirPath, subDir);
             free(subDir);
             free(srcSubdirPath);
+            continue;
         }
-        else {
-            size_t destFilePathLen = strlen(dest) + 1 + strlen(srcEntry->d_name) + 1;
-            // Add one for / and one for null terminator
-            char *destFilePath = malloc(destFilePathLen);
-            snprintf(destFilePath, destFilePathLen, "%s/%s", dest, srcEntry->d_name);
-            FILE *destFile = fopen(destFilePath, "wb");
-            if (destFile == NULL) {
-                fprintf(stderr, "Failed to create file\n");
-                closedir(srcDir);
-                free(destFilePath);
-                exit(1);
-            }
-            size_t srcFilePathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1;
-            char *srcFilePath = malloc(srcFilePathLen);
-            snprintf(srcFilePath, srcFilePathLen, "%s/%s", src, srcEntry->d_name);
-            FILE *srcFile = fopen(srcFilePath, "rb");
-            if (srcFile == NULL) {
-                fprintf(stderr, "Failed to read src file");
-                closedir(srcDir);
-                free(destFilePath);
-                fclose(destFile);
-                free(srcFilePath);
-                exit(1);
-            }
-
-            char buffer[4096];
-            size_t bytesRead;
-            while ((bytesRead = fread(buffer, 1, sizeof(buffer), srcFile)) > 0) {
-                fwrite(buffer, 1, bytesRead, destFile);
-            }
-
-            fclose(destFile);
-            fclose(srcFile);
-            free(srcFilePath);
-            free(destFilePath);
+        if (srcEntry->d_type == DT_REG) {
+            // Continue if success. Otherwise, close dir and exit with error
+            if (CopyFile(src, dest, srcEntry->d_name) == 0) continue;
+            closedir(srcDir);
+            fprintf(stderr, "Failed to copy file %s", srcEntry->d_name);
+            exit(1);
+        }
+        if (srcEntry->d_type == DT_LNK) {
+            // Add one for '/' and one for null terminator
+            const size_t symlinkPathLen = strlen(src) + strlen(srcEntry->d_name) + 2;
+            char *symlinkPath = malloc(symlinkPathLen); // TODO: calculate path to entry globally instead of in each if statement
+            snprintf(symlinkPath, symlinkPathLen, "%s/%s", src, srcEntry->d_name);
+            char *symlinkPointsTo;
         }
     }
     closedir(srcDir);
