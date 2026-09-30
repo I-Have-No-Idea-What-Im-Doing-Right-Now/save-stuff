@@ -145,36 +145,32 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
         if (strcmp(srcEntry->d_name, ".") == 0 || strcmp(srcEntry->d_name, "..") == 0) continue;
         // Skip over . and .. directories to avoid infinite recursion
         if (IgnoresContains(srcEntry->d_name)) continue;
+        // Add one for '/' and one for null terminator
+        const size_t pathToEntryLength = strlen(src) + strlen(srcEntry->d_name) + 2;
+        char *pathToEntry = malloc(pathToEntryLength);
+        snprintf(pathToEntry, pathToEntryLength, "%s/%s", src, srcEntry->d_name);
         if (srcEntry->d_type == DT_DIR) {
             char *subDir = MakeSubDir(dest, srcEntry->d_name);
-            const size_t srcSubdirPathLen = strlen(src) + 1 + strlen(srcEntry->d_name) + 1;
-            // Add one for / and one for null terminator
-            char *srcSubdirPath = malloc(srcSubdirPathLen);
-            snprintf(srcSubdirPath, srcSubdirPathLen, "%s/%s", src, srcEntry->d_name);
             if (subDir == NULL) {
                 fprintf(stderr, "Failed to create subdirectory in destination directory\n");
                 closedir(srcDir);
                 return;
             }
-            CopyDirContentsRecursive(srcSubdirPath, subDir);
+            CopyDirContentsRecursive(pathToEntry, subDir);
             free(subDir);
-            free(srcSubdirPath);
-            continue;
         }
-        if (srcEntry->d_type == DT_REG) {
+        else if (srcEntry->d_type == DT_REG) {
             // Continue if success. Otherwise, close dir and exit with error
             if (CopyFile(src, dest, srcEntry->d_name) == 0) continue;
             closedir(srcDir);
+            free(pathToEntry);
             fprintf(stderr, "Failed to copy file %s", srcEntry->d_name);
             exit(1);
         }
-        if (srcEntry->d_type == DT_LNK) {
-            // Add one for '/' and one for null terminator
-            const size_t symlinkPathLen = strlen(src) + strlen(srcEntry->d_name) + 2;
-            char *symlinkPath = malloc(symlinkPathLen); // TODO: calculate path to entry globally instead of in each if statement
-            snprintf(symlinkPath, symlinkPathLen, "%s/%s", src, srcEntry->d_name);
-            char *symlinkPointsTo;
+        else if (srcEntry->d_type == DT_LNK) {
+            printf("SYMLINK %s\n", pathToEntry);
         }
+        free(pathToEntry);
     }
     closedir(srcDir);
 }
