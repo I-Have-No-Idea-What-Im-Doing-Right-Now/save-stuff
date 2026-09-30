@@ -168,7 +168,9 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             exit(1);
         }
         else if (srcEntry->d_type == DT_LNK) {
-            printf("SYMLINK %s\n", pathToEntry);
+            char symlinkPointsTo[SAFE_PATH_MAX];
+            realpath(pathToEntry, symlinkPointsTo);
+            printf("Symlink %s \tPointing To: %s\n", pathToEntry, symlinkPointsTo);
         }
         free(pathToEntry);
     }
