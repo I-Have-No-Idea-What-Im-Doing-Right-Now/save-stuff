@@ -96,27 +96,17 @@ static char *MakeSubDir(char *parent, char *name) {
     return subDirPath;
 }
 
-static int CopyFile(const char *const src, const char *const dest, const char *const filename) {
+static int CopyFile(const char *const src, const char *const dest) {
     // Returns 0 for success, 1 for failure
-    size_t destFilePathLen = strlen(dest) + 1 + strlen(filename) + 1;
-    // Add one for / and one for null terminator
-    char *destFilePath = malloc(destFilePathLen);
-    snprintf(destFilePath, destFilePathLen, "%s/%s", dest, filename);
-    FILE *destFile = fopen(destFilePath, "wb");
+    FILE *destFile = fopen(dest, "wb");
     if (destFile == NULL) {
-        fprintf(stderr, "Failed to create destination file\n");
-        free(destFilePath);
+        fprintf(stderr, "Failed to create or open destination file\n");
         return 1;
     }
-    size_t srcFilePathLen = strlen(src) + 1 + strlen(filename) + 1;
-    char *srcFilePath = malloc(srcFilePathLen);
-    snprintf(srcFilePath, srcFilePathLen, "%s/%s", src, filename);
-    FILE *srcFile = fopen(srcFilePath, "rb");
+    FILE *srcFile = fopen(src, "rb");
     if (srcFile == NULL) {
-        fprintf(stderr, "Failed to read src file");
-        free(destFilePath);
+        fprintf(stderr, "Failed to read source file");
         fclose(destFile);
-        free(srcFilePath);
         return 1;
     }
 
@@ -128,8 +118,6 @@ static int CopyFile(const char *const src, const char *const dest, const char *c
 
     fclose(destFile);
     fclose(srcFile);
-    free(srcFilePath);
-    free(destFilePath);
     return 0;
 }
 
@@ -161,7 +149,11 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
         }
         else if (srcEntry->d_type == DT_REG) {
             // Continue if success. Otherwise, close dir and exit with error
-            if (CopyFile(src, dest, srcEntry->d_name) == 0) continue;
+            // Size of the path to dest file. Add 1 for '/' and 1 for null terminator
+            const size_t pathToDestSize = strlen(dest) + strlen(srcEntry->d_name) + 2;
+            char *pathToDestFile = malloc(pathToDestSize);
+            snprintf(pathToDestFile, pathToDestSize, "%s/%s", dest, srcEntry->d_name);
+            if (CopyFile(src, dest) == 0) { free(pathToDestFile); continue; }
             closedir(srcDir);
             free(pathToEntry);
             fprintf(stderr, "Failed to copy file %s", srcEntry->d_name);
