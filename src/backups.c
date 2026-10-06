@@ -104,7 +104,7 @@ static int CopyFile(const char *const src, const char *const dest, const char *c
     snprintf(destFilePath, destFilePathLen, "%s/%s", dest, filename);
     FILE *destFile = fopen(destFilePath, "wb");
     if (destFile == NULL) {
-        fprintf(stderr, "Failed to create file\n");
+        fprintf(stderr, "Failed to create destination file\n");
         free(destFilePath);
         return 1;
     }
