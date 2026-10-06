@@ -100,7 +100,7 @@ static int CopyFile(const char *const src, const char *const dest) {
     // Returns 0 for success, 1 for failure
     FILE *destFile = fopen(dest, "wb");
     if (destFile == NULL) {
-        fprintf(stderr, "Failed to create or open destination file\n");
+        fprintf(stderr, "Failed to create or open destination file %s\n", dest);
         return 1;
     }
     FILE *srcFile = fopen(src, "rb");
@@ -146,23 +146,39 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             }
             CopyDirContentsRecursive(pathToEntry, subDir);
             free(subDir);
-        }
-        else if (srcEntry->d_type == DT_REG) {
+        } else if (srcEntry->d_type == DT_REG) {
             // Continue if success. Otherwise, close dir and exit with error
             // Size of the path to dest file. Add 1 for '/' and 1 for null terminator
             const size_t pathToDestSize = strlen(dest) + strlen(srcEntry->d_name) + 2;
             char *pathToDestFile = malloc(pathToDestSize);
             snprintf(pathToDestFile, pathToDestSize, "%s/%s", dest, srcEntry->d_name);
-            if (CopyFile(src, dest) == 0) { free(pathToDestFile); continue; }
+            if (CopyFile(src, pathToDestFile) == 0) {
+                free(pathToDestFile);
+                continue;
+            }
             closedir(srcDir);
+            free(pathToDestFile);
             free(pathToEntry);
-            fprintf(stderr, "Failed to copy file %s", srcEntry->d_name);
+            fprintf(stderr, "Failed to copy file %s\n", srcEntry->d_name);
             exit(1);
-        }
-        else if (srcEntry->d_type == DT_LNK) {
+        } else if (srcEntry->d_type == DT_LNK) {
             char symlinkPointsTo[SAFE_PATH_MAX];
             realpath(pathToEntry, symlinkPointsTo);
             printf("Symlink %s \tPointing To: %s\n", pathToEntry, symlinkPointsTo);
+            /* Path to file that contents of the file that symlink points to will be copied to
+             * Add one for '/' and one for null terminator
+            */
+            const size_t pathToDestSize = strlen(dest) + strlen(srcEntry->d_name) + 2;
+            char *pathToDestFile = malloc(pathToDestSize);
+            snprintf(pathToDestFile, pathToDestSize, "%s/%s", dest, srcEntry->d_name);
+            if (CopyFile(symlinkPointsTo, pathToDestFile) == 0) {
+                free(pathToDestFile);
+                continue;
+            }
+            free(pathToDestFile);
+            free(pathToEntry);
+            fprintf(stderr, "Failed to copy symlink %s pointing to %s\n", srcEntry->d_name, symlinkPointsTo);
+            exit(1);
         }
         free(pathToEntry);
     }
@@ -200,14 +216,17 @@ static void ClearDirContentsRecursive(char *path) {
         snprintf(pathToEntry, pathToEntrySize, "%s/%s", path, dirEntry->d_name);
         const int err = cross_plat_remove(pathToEntry);
         // Continue to next entry if deletion was successful
-        if (err == 0) { free(pathToEntry); continue; }
+        if (err == 0) {
+            free(pathToEntry);
+            continue;
+        }
         switch (errno) {
-            case ENOTEMPTY:  // Directory not empty
+            case ENOTEMPTY: // Directory not empty
                 ClearDirContentsRecursive(pathToEntry);
                 break;
             case EACCES: // Permission denied
-            case EPERM:  // Operation not permitted
-            case EROFS:  // Read only file system
+            case EPERM: // Operation not permitted
+            case EROFS: // Read only file system
                 fprintf(stderr, "Not allowed to delete item %s\n", pathToEntry);
                 free(pathToEntry);
                 closedir(currentDir);
