@@ -27,8 +27,8 @@ static char *GetBackupDirName() {
     time(&rawTime); // Set raw time using time function
     const struct tm *timeInfo = localtime(&rawTime);
 
-    char *dirName = malloc(SAFE_DIR_MAX);
-    const size_t bytesWritten = strftime(dirName, SAFE_DIR_MAX - 1, BACKUP_NAME, timeInfo);
+    char *dirName = malloc(SAFE_NAME_MAX);
+    const size_t bytesWritten = strftime(dirName, SAFE_NAME_MAX - 1, BACKUP_NAME, timeInfo);
     // Only write as much as the buffer can hold (49 bytes)
     if (bytesWritten == 0) {
         fprintf(stderr, "Backup directory name too long\n");

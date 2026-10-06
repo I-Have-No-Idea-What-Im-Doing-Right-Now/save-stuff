@@ -9,7 +9,7 @@
 #include "crossplatlimits.h"
 
 extern char TARGET_DIR[SAFE_PATH_MAX];
-extern char BACKUP_NAME[SAFE_DIR_MAX];
+extern char BACKUP_NAME[SAFE_NAME_MAX];
 extern char BACKUP_TO_RESTORE[SAFE_PATH_MAX];
 extern char **IGNORES;
 extern size_t IGNORES_LEN;

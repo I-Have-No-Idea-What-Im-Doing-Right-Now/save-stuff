@@ -46,9 +46,9 @@ static void AppendIgnores(const char *text) {
     }
     IGNORES = temp;
 
-    IGNORES[IGNORES_LEN - 1] = (char *)malloc(SAFE_DIR_MAX);
+    IGNORES[IGNORES_LEN - 1] = (char *)malloc(SAFE_NAME_MAX);
     if (IGNORES[IGNORES_LEN - 1] != NULL) {
-        strncpy(IGNORES[IGNORES_LEN - 1], text, SAFE_DIR_MAX);
+        strncpy(IGNORES[IGNORES_LEN - 1], text, SAFE_NAME_MAX);
     }
 }
 
