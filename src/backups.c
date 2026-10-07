@@ -137,6 +137,7 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
         const size_t pathToEntryLength = strlen(src) + strlen(srcEntry->d_name) + 2;
         char *pathToEntry = malloc(pathToEntryLength);
         snprintf(pathToEntry, pathToEntryLength, "%s/%s", src, srcEntry->d_name);
+
         if (srcEntry->d_type == DT_DIR) {
             char *subDir = MakeSubDir(dest, srcEntry->d_name);
             if (subDir == NULL) {
@@ -146,13 +147,14 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             }
             CopyDirContentsRecursive(pathToEntry, subDir);
             free(subDir);
-        } else if (srcEntry->d_type == DT_REG) {
+        }
+        else if (srcEntry->d_type == DT_REG) {
             // Continue if success. Otherwise, close dir and exit with error
             // Size of the path to dest file. Add 1 for '/' and 1 for null terminator
             const size_t pathToDestSize = strlen(dest) + strlen(srcEntry->d_name) + 2;
             char *pathToDestFile = malloc(pathToDestSize);
             snprintf(pathToDestFile, pathToDestSize, "%s/%s", dest, srcEntry->d_name);
-            if (CopyFile(src, pathToDestFile) == 0) {
+            if (CopyFile(pathToEntry, pathToDestFile) == 0) {
                 free(pathToDestFile);
                 continue;
             }
@@ -161,7 +163,8 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             free(pathToEntry);
             fprintf(stderr, "Failed to copy file %s\n", srcEntry->d_name);
             exit(1);
-        } else if (srcEntry->d_type == DT_LNK) {
+        }
+        else if (srcEntry->d_type == DT_LNK) {
             char symlinkPointsTo[SAFE_PATH_MAX];
             realpath(pathToEntry, symlinkPointsTo);
             printf("Symlink %s \tPointing To: %s\n", pathToEntry, symlinkPointsTo);
