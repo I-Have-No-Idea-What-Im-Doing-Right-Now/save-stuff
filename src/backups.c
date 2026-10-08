@@ -167,7 +167,6 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
         else if (srcEntry->d_type == DT_LNK) {
             char symlinkPointsTo[SAFE_PATH_MAX];
             realpath(pathToEntry, symlinkPointsTo);
-            printf("Symlink %s \tPointing To: %s\n", pathToEntry, symlinkPointsTo);
             /* Path to file that contents of the file that symlink points to will be copied to
              * Add one for '/' and one for null terminator
             */
