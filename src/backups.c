@@ -177,6 +177,11 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
                 free(pathToDestFile);
                 continue;
             }
+            printf("%i", errno);
+            if (errno == EISDIR) {
+                // Tried to read from a directory; Copy directory into correct spot
+                CopyDirContentsRecursive(symlinkPointsTo, pathToDestFile);
+            }
             free(pathToDestFile);
             free(pathToEntry);
             fprintf(stderr, "Failed to copy symlink %s pointing to %s\n", srcEntry->d_name, symlinkPointsTo);
