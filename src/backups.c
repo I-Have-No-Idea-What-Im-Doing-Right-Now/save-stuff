@@ -97,25 +97,48 @@ static char *MakeSubDir(char *parent, char *name) {
 }
 
 static int CopyFile(const char *const src, const char *const dest) {
-    // Returns 0 for success, 1 for failure
+    /* Copy the file at src (string, representing a path) to dest (string, representing a path)
+     * Returns 0 for success, 1 for failure
+     */
+
+    // Create the file at the destination path if it does not exist yet
     FILE *destFile = fopen(dest, "wb");
     if (destFile == NULL) {
         fprintf(stderr, "Failed to create or open destination file %s\n", dest);
         return 1;
     }
+
+    // Open the file at the source path for reading
     FILE *srcFile = fopen(src, "rb");
     if (srcFile == NULL) {
         fprintf(stderr, "Failed to read source file");
         fclose(destFile);
         return 1;
     }
+    /* Set errno to 0 to check for success from fread() (Can't check for 0 bytes read because of empty files)
+    * Possible errors can come from fread and on macOS, you can open a directory with fopen(), causing EISDIR when
+    * using fread.
+    */
+    errno = 0;
 
+    // Copy file in 4096-byte chunks
     char buffer[4096];
     size_t bytesRead;
     while ((bytesRead = fread(buffer, 1, sizeof(buffer), srcFile)) > 0) {
         fwrite(buffer, 1, bytesRead, destFile);
     }
 
+    // Check if reading caused errno to be set. If so, return failure
+    if (errno != 0) {
+        // Remove the destination file if failing so we dont leave a half-copied or empty file
+        cross_plat_remove(dest);
+
+        fclose(destFile);
+        fclose(srcFile);
+        return 1;
+    }
+
+    // Return success if nothing caused function to exit early
     fclose(destFile);
     fclose(srcFile);
     return 0;
@@ -169,7 +192,7 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
             realpath(pathToEntry, symlinkPointsTo);
             /* Path to file that contents of the file that symlink points to will be copied to
              * Add one for '/' and one for null terminator
-            */
+             */
             const size_t pathToDestSize = strlen(dest) + strlen(srcEntry->d_name) + 2;
             char *pathToDestFile = malloc(pathToDestSize);
             snprintf(pathToDestFile, pathToDestSize, "%s/%s", dest, srcEntry->d_name);
@@ -177,15 +200,18 @@ static void CopyDirContentsRecursive(char *src, char *dest) {
                 free(pathToDestFile);
                 continue;
             }
-            printf("%i", errno);
             if (errno == EISDIR) {
                 // Tried to read from a directory; Copy directory into correct spot
+                // TODO: MAKE IT MAKE THE DIRECTORY
+                make_dir(pathToDestFile);
                 CopyDirContentsRecursive(symlinkPointsTo, pathToDestFile);
             }
-            free(pathToDestFile);
-            free(pathToEntry);
-            fprintf(stderr, "Failed to copy symlink %s pointing to %s\n", srcEntry->d_name, symlinkPointsTo);
-            exit(1);
+            else {
+                free(pathToDestFile);
+                free(pathToEntry);
+                fprintf(stderr, "Failed to copy symlink %s pointing to %s\n", srcEntry->d_name, symlinkPointsTo);
+                exit(1);
+            }
         }
         free(pathToEntry);
     }
